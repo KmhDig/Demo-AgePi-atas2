@@ -3449,6 +3449,9 @@ async function saveOptionCategoryToSheets(category) {
                 const dateStr = `${year}-${mm}-${dd}`;
                 const dObj = new Date(year, month, d);
                 const dow = dObj.getDay();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const pastDate = dObj < today;
 
                 let status = dayStatuses[dateStr] || (operationalDays[dow] === false ? 'closed' : 'available');
                 const leadBlocked = isDateBeforeOrderLeadTime(dateStr);
@@ -3458,7 +3461,10 @@ async function saveOptionCategoryToSheets(category) {
 
                 // La anticipación mínima tiene prioridad visual: si la fecha aún no puede
                 // solicitarse por los días hábiles requeridos, no debe parecer disponible.
-                if (leadBlocked) {
+                if (pastDate) {
+                    bgClass = 'bg-stone-100 text-stone-400 border-stone-300 opacity-100 pm-past-date';
+                    dotClass = 'bg-stone-400';
+                } else if (leadBlocked) {
                     bgClass = 'bg-stone-100 text-stone-400 border-stone-300 opacity-100 pm-lead-blocked';
                     dotClass = 'bg-stone-400';
                 } else if (status === 'full') {
@@ -3474,7 +3480,9 @@ async function saveOptionCategoryToSheets(category) {
 
                 const selectedClass = selectedDateStr === dateStr ? ' pm-calendar-selected' : '';
 
-                const unavailableTitle = leadBlocked
+                const unavailableTitle = pastDate
+                    ? 'Fecha pasada: ya no está disponible para pedidos'
+                    : leadBlocked
                     ? `No disponible: requiere ${orderLeadTimeDays} día${orderLeadTimeDays === 1 ? '' : 's'} hábiles de anticipación`
                     : status === 'blocked'
                         ? 'Agenda llena: elige otra fecha'
@@ -3484,7 +3492,7 @@ async function saveOptionCategoryToSheets(category) {
                                 ? 'Pocos lugares: esta fecha sí está disponible'
                                 : `Fecha ${d}`;
                 grid.innerHTML += `
-                    <button type="button" ${leadBlocked ? 'disabled' : `onclick="selectDate('${dateStr}')"`} title="${unavailableTitle}" aria-disabled="${leadBlocked || agendaUnavailable ? 'true' : 'false'}" aria-label="${unavailableTitle}" class="pm-calendar-day h-10 rounded-xl border ${bgClass}${selectedClass} flex flex-col items-center justify-center relative text-xs font-bold ${leadBlocked || agendaUnavailable ? 'cursor-not-allowed' : ''}">
+                    <button type="button" ${pastDate || leadBlocked ? 'disabled' : `onclick="selectDate('${dateStr}')"`} title="${unavailableTitle}" aria-disabled="${pastDate || leadBlocked || agendaUnavailable ? 'true' : 'false'}" aria-label="${unavailableTitle}" class="pm-calendar-day h-10 rounded-xl border ${bgClass}${selectedClass} flex flex-col items-center justify-center relative text-xs font-bold ${pastDate || leadBlocked || agendaUnavailable ? 'cursor-not-allowed' : ''}">
                         <span>${d}</span>
                         <span class="w-1.5 h-1.5 rounded-full ${dotClass} mt-0.5"></span>
                     </button>
@@ -3516,6 +3524,15 @@ async function saveOptionCategoryToSheets(category) {
         }
 
         function selectDate(dateStr) {
+            const selectedParts = dateStr.split('-');
+            const selectedDay = new Date(Number(selectedParts[0]), Number(selectedParts[1]) - 1, Number(selectedParts[2]));
+            const todayForSelection = new Date();
+            todayForSelection.setHours(0, 0, 0, 0);
+            if (selectedDay < todayForSelection) {
+                showCalendarAvailabilityMessage('Esta fecha ya pasó y no está disponible para nuevos pedidos. Por favor, elige hoy o una fecha futura.', 'error');
+                showToast('Las fechas pasadas no están disponibles para pedidos.', 'error');
+                return;
+            }
             if (isDateBeforeOrderLeadTime(dateStr)) {
                 showCalendarAvailabilityMessage(`Esta fecha requiere al menos ${orderLeadTimeDays} día${orderLeadTimeDays === 1 ? '' : 's'} hábiles de anticipación. Por favor, elige otra fecha.`, 'error');
                 showToast(`Esta fecha requiere al menos ${orderLeadTimeDays} día${orderLeadTimeDays === 1 ? '' : 's'} de anticipación.`, 'error');
@@ -3551,6 +3568,11 @@ async function saveOptionCategoryToSheets(category) {
 
         function onFormDateChange(dateStr) {
             if (!dateStr) return;
+            const manualParts = dateStr.split('-');
+            const manualDate = new Date(Number(manualParts[0]), Number(manualParts[1]) - 1, Number(manualParts[2]));
+            const todayForManualDate = new Date();
+            todayForManualDate.setHours(0, 0, 0, 0);
+            if (manualDate < todayForManualDate) { document.getElementById('eventDate').value = ''; selectedDateStr = null; showCalendarAvailabilityMessage('Esta fecha ya pasó y no está disponible para nuevos pedidos. Por favor, elige hoy o una fecha futura.', 'error'); showToast('Las fechas pasadas no están disponibles para pedidos.', 'error'); renderCalendar(); return; }
             if (isDateBeforeOrderLeadTime(dateStr)) { document.getElementById('eventDate').value = ''; selectedDateStr = null; showCalendarAvailabilityMessage(`Esta fecha requiere al menos ${orderLeadTimeDays} día${orderLeadTimeDays === 1 ? '' : 's'} hábiles de anticipación. Por favor, elige otra fecha.`, 'error'); showToast(`Esta fecha requiere al menos ${orderLeadTimeDays} día${orderLeadTimeDays === 1 ? '' : 's'} de anticipación.`, 'error'); return; }
             const dateParts = dateStr.split('-');
             const candidateDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
@@ -5213,20 +5235,24 @@ function closeClearOldOrdersModal() {
                 const dateStr = `${year}-${mm}-${dd}`;
                 const dObj = new Date(year, month, d);
                 const dow = dObj.getDay();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const pastDate = dObj < today;
 
                 let status = dayStatuses[dateStr] || (operationalDays[dow] === false ? 'closed' : 'available');
                 const leadBlocked = isDateBeforeOrderLeadTime(dateStr);
                 let bgClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200';
                 let dotClass = 'bg-emerald-500';
-                if (leadBlocked) { bgClass = 'bg-stone-100 text-stone-400 border-stone-200 opacity-70'; dotClass = 'bg-stone-300'; }
+                if (pastDate) { bgClass = 'bg-stone-100 text-stone-400 border-stone-300 opacity-100'; dotClass = 'bg-stone-400'; }
+                else if (leadBlocked) { bgClass = 'bg-stone-100 text-stone-400 border-stone-200 opacity-70'; dotClass = 'bg-stone-300'; }
 
-                if (status === 'full') {
+                if (!pastDate && !leadBlocked && status === 'full') {
                     bgClass = 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200';
                     dotClass = 'bg-amber-500';
-                } else if (status === 'blocked') {
+                } else if (!pastDate && !leadBlocked && status === 'blocked') {
                     bgClass = 'bg-orange-50 hover:bg-orange-100 text-orange-800 border-orange-300';
                     dotClass = 'bg-orange-600';
-                } else if (status === 'closed') {
+                } else if (!pastDate && !leadBlocked && status === 'closed') {
                     bgClass = 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200 opacity-60';
                     dotClass = 'bg-rose-500';
                 }
@@ -5236,7 +5262,7 @@ function closeClearOldOrdersModal() {
                 }
 
                 grid.innerHTML += `
-                    <button type="button" ${leadBlocked ? 'disabled' : `onclick="adminSelectDate('${dateStr}')"`} class="h-10 rounded-xl border ${bgClass} flex flex-col items-center justify-center transition relative text-xs font-bold ${leadBlocked ? 'cursor-not-allowed' : ''}">
+                    <button type="button" ${pastDate || leadBlocked ? 'disabled' : `onclick="adminSelectDate('${dateStr}')"`} title="${pastDate ? 'Fecha pasada' : ''}" class="h-10 rounded-xl border ${bgClass} flex flex-col items-center justify-center transition relative text-xs font-bold ${pastDate || leadBlocked ? 'cursor-not-allowed' : ''}">
                         <span>${d}</span>
                         <span class="w-1.5 h-1.5 rounded-full ${dotClass} mt-0.5"></span>
                     </button>
