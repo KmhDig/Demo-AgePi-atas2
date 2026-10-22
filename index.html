@@ -1308,7 +1308,7 @@ body > section:first-of-type a:not(.bg-brand-500){
             <h2 id="galleryTitle" class="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">Piñatas que hacen mágico cualquier festejo</h2>
             <p id="galleryDescription" class="text-sm text-stone-600 font-medium">Conoce parte de nuestros trabajos personalizados y acabados perfectos. Haz clic en cualquier imagen para verla en grande.</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-2 gap-6">
             <div onclick="openLightbox('images/imagen2.jpg', 'Trabajo Artesanal 1')" class="group relative bg-white rounded-3xl overflow-hidden border border-stone-200 shadow-sm hover:shadow-xl transition cursor-pointer aspect-[3/4]">
                 <img src="images/imagen2.jpg" alt="Piñata 1" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x800/fef2f4/e11d48?text=Pinata'">
                 <div class="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/20 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -5736,11 +5736,11 @@ function closeClearOldOrdersModal() {
     (el.closest('.p-4') || el.parentElement)?.style.setProperty('display','none','important');
   }
   function applyBasicVersion(){
-    // Galería: conservar solo las tres primeras fotos y una cuadrícula estética adaptable.
+    // Galería: conservar solo las cuatro primeras fotos en una cuadrícula 2 x 2.
     const gallery = document.querySelector('#galeriaTrabajos > .grid');
     if (gallery) {
-      Array.from(gallery.children).forEach((item, i) => { if (i >= 3) item.remove(); });
-      gallery.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important');
+      Array.from(gallery.children).forEach((item, i) => { if (i >= 4) item.remove(); });
+      gallery.style.setProperty('grid-template-columns','repeat(2,minmax(0,1fr))','important');
       gallery.style.setProperty('gap','1rem','important');
       Array.from(gallery.children).forEach(item => {
         item.style.setProperty('aspect-ratio','4 / 5','important');
@@ -5750,7 +5750,7 @@ function closeClearOldOrdersModal() {
     const galleryStyle = document.getElementById('pinipo-basic-gallery-responsive');
     if (!galleryStyle) {
       const st=document.createElement('style'); st.id='pinipo-basic-gallery-responsive';
-      st.textContent='@media(max-width:640px){#galeriaTrabajos > .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.65rem!important}#galeriaTrabajos > .grid > div:nth-child(3){grid-column:1/-1;width:calc(50% - .325rem);justify-self:center}}';
+      st.textContent='@media(max-width:640px){#galeriaTrabajos > .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.65rem!important}}';
       document.head.appendChild(st);
     }
     // Quitar controles y tarjetas de anticipación, horario y días, tanto en el aviso público como en Admin.
